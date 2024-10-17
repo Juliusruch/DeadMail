@@ -1,4 +1,5 @@
 const Letter = require("./Letter");
+const Mailbox = require("./Mailbox");
 const express =  require('express');
 const cors = require('cors');
 const app = express();
@@ -12,20 +13,22 @@ app.use(express.json());
 
 
 const letterMap = new Map();
+var count = 0;
 
 
-const collectLetters = (letters) => {
-    console.log("checkup");
-    conmsole.log(letters)
-    if (letters.length == 0)
+const collectLetters = (mailbox) => {
+    console.log(mailbox.letters)
+    console.log(count++);
+    if (mailbox.emptyBox())
     {
+        letterMap.delete(`${mailbox.adress}`);
         return;
     }
 
-    if (letters[0].ageInMinutes() >= 1)
+    if (mailbox.getOldestLetter().ageInMinutes() >= 1)
     {
-        console.log("deleted: " + letters[0]);
-        letters.shift();
+        console.log("deleted: " + mailbox.getOldestLetter());
+        mailbox.deleteOldestLetter();
     }
 
 }
@@ -35,23 +38,31 @@ function checkMail()
     letterMap.forEach(collectLetters);
 }
 
-setInterval(checkMail, 6000);
+setInterval(checkMail, 1000);
 
 
 app.post('/api/sendLetter', (req, res) => {
     const {adress, message} = req.body;
 
-    const letter = new Letter(adress, message);
+    const letter = new Letter(message);
     
-    if (!letterMap.get(adress))
+    const mailWrapper = letterMap.get(adress);
+    if (!mailWrapper)
     {
-        letterMap.set(adress, [letter]);
+        const mail = new Mailbox(adress);
+        mail.addLetter(letter);
+        letterMap.set(adress, mail);
+        res.status(201).json(`Letter sent!`);
+    }
+    else if (mailWrapper.getFreeLetterSlots() > 0)
+    {
+        mailWrapper.addLetter(letter);
+        res.status(201).json(`Letter sent!`);
     }
     else
     {
-        letterMap.get(adress).push(letter);
+        res.status(201).json(`Mailbox has reached its maximum capacity!`);
     }
-    res.status(201).json(`Test`);
     
 })
 

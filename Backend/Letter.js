@@ -1,9 +1,8 @@
 class Letter
 {
 
-    constructor(adress, message)
+    constructor(message)
     {
-        this.adress = adress;
         this.message = message;
         this.timeStamp = Date.now();
     }
